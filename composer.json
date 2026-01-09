@@ -1,0 +1,37 @@
+{
+    "name": "leafs/craftly",
+    "description": "Leaf Craftly CMS integration",
+    "keywords": [
+        "craftly",
+        "cms",
+        "leaf",
+        "php"
+    ],
+    "homepage": "https://github.com/leafsphp/craftly",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Michael Darko",
+            "email": "mickdd22@gmail.com",
+            "homepage": "https://mychi.netlify.app",
+            "role": "Developer"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Craftly\\": "src"
+        },
+        "files": [
+            "src/functions.php"
+        ]
+    },
+    "minimum-stability": "dev",
+	"prefer-stable": true,
+    "require-dev": {
+        "leafs/alchemy": "*"
+    },
+    "require": {
+        "symfony/yaml": "^7.4"
+    }
+}
