@@ -32,6 +32,6 @@
         "leafs/alchemy": "*"
     },
     "require": {
-        "symfony/yaml": "^7.4"
+        "symfony/yaml": "*"
     }
 }
