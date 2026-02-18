@@ -2,6 +2,7 @@
 
 namespace Craftly;
 
+use Illuminate\Support\Str;
 use Symfony\Component\Yaml\Yaml;
 
 /**
@@ -13,6 +14,12 @@ class Core
 {
     public static function setup()
     {
+        app()->get('/__craftly_api/app/ping', [
+            'namespace' => 'Craftly',
+            'lingo.no_locale_prefix' => true,
+            'CraftlyController@ping'
+        ]);
+
         app()->get('/__craftly_api/app/config', [
             'namespace' => 'Craftly',
             'lingo.no_locale_prefix' => true,
@@ -23,6 +30,24 @@ class Core
             'namespace' => 'Craftly',
             'lingo.no_locale_prefix' => true,
             'CraftlyController@getApp'
+        ]);
+
+        app()->get('/__craftly_api/app/redirects', [
+            'namespace' => 'Craftly',
+            'lingo.no_locale_prefix' => true,
+            'CraftlyController@getRedirects'
+        ]);
+
+        app()->get('/__craftly_api/app/theme', [
+            'namespace' => 'Craftly',
+            'lingo.no_locale_prefix' => true,
+            'CraftlyController@getTheme'
+        ]);
+
+        app()->get('/__craftly_api/app/logs', [
+            'namespace' => 'Craftly',
+            'lingo.no_locale_prefix' => true,
+            'CraftlyController@getAppLogs'
         ]);
 
         app()->get('/__craftly_api/app/pages', [
@@ -37,10 +62,28 @@ class Core
             'CraftlyController@getMedia'
         ]);
 
+        app()->post('/__craftly_api/app/media', [
+            'namespace' => 'Craftly',
+            'lingo.no_locale_prefix' => true,
+            'CraftlyController@uploadMedia'
+        ]);
+
         app()->get('/__craftly_api/app/models', [
             'namespace' => 'Craftly',
             'lingo.no_locale_prefix' => true,
             'CraftlyController@getModels'
+        ]);
+
+        app()->get('/__craftly_api/app/models/show', [
+            'namespace' => 'Craftly',
+            'lingo.no_locale_prefix' => true,
+            'CraftlyController@getModelItems'
+        ]);
+
+        app()->post('/__craftly_api/app/pages/sync', [
+            'namespace' => 'Craftly',
+            'lingo.no_locale_prefix' => true,
+            'CraftlyController@syncPages'
         ]);
 
         app()->get('/__craftly_api/app/pages/{page}', [
@@ -79,10 +122,22 @@ class Core
             'CraftlyController@createLang'
         ]);
 
+        app()->delete('/__craftly_api/app/langs/{lang}', [
+            'namespace' => 'Craftly',
+            'lingo.no_locale_prefix' => true,
+            'CraftlyController@deleteLang'
+        ]);
+
         app()->put('/__craftly_api/app/langs/{lang}', [
             'namespace' => 'Craftly',
             'lingo.no_locale_prefix' => true,
             'CraftlyController@updateLang'
+        ]);
+
+        app()->post('/__craftly_api/app/langs/{lang}/toggle', [
+            'namespace' => 'Craftly',
+            'lingo.no_locale_prefix' => true,
+            'CraftlyController@toggleLang'
         ]);
 
         static::buildRoutes();
@@ -90,7 +145,7 @@ class Core
 
     public static function buildRoutes()
     {
-        $routeRegistry = path(ViewsPath('__craftly', false))->join('routes.yml');
+        $routeRegistry = path(StoragePath('craftly', false))->join('routes.yml');
 
         if (storage()->exists($routeRegistry)) {
             $routes = Yaml::parseFile($routeRegistry);
@@ -123,30 +178,48 @@ class Core
 
     public static function getApp()
     {
-        $siteLog = [];
         $sitePages = [];
         $siteTheme = null;
-        $siteColors = null;
 
-        $sitePagesDirectory = path(ViewsPath('__craftly', false))->join('pages');
-        $siteThemeFile = path(ViewsPath('__craftly', false))->join('ui', 'theme.yml');
-        $colorsFile = path(ViewsPath('__craftly', false))->join('ui', 'colors.yml');
-        $logFile = path(ViewsPath('__craftly', false))->join('ui', 'log.yml');
+        $siteThemeFile = path(ViewsPath('theme.yml', false))->normalize();
+        $templatesDirectory = path(ViewsPath('layouts', false))->normalize();
+        $sitePagesDirectory = path(StoragePath('craftly', false))->join('pages');
+        $dataSourcesDirectory = path(dirname(ViewsPath('', false)))->join('content');
 
         if (storage()->exists($siteThemeFile)) {
             $siteTheme = Yaml::parseFile($siteThemeFile);
-        }
 
-        if (storage()->exists($colorsFile)) {
-            $siteColors = Yaml::parseFile($colorsFile);
-        }
+            if (storage()->exists($templatesDirectory)) {
+                $templates = glob("$templatesDirectory/*.blade.php");
 
-        if (storage()->exists($logFile)) {
-            $siteLog = Yaml::parseFile($logFile);
+                foreach ($templates as $template) {
+                    $name = basename($template, '.blade.php');
+
+                    if ($name !== 'app') {
+                        $siteTheme['templates'][] = $name;
+                    }
+                }
+            } else {
+                $siteTheme['templates'] = [];
+            }
+
+            if (storage()->exists($dataSourcesDirectory)) {
+                $dataSources = glob("$dataSourcesDirectory/*.php");
+
+                foreach ($dataSources as $dataSource) {
+                    $name = basename($dataSource, '.php');
+
+                    if ($name !== 'Content') {
+                        $siteTheme['dataSources'][] = $name;
+                    }
+                }
+            } else {
+                $siteTheme['dataSources'] = [];
+            }
         }
 
         if (storage()->exists($sitePagesDirectory)) {
-            $pageFiles = array_filter(glob($sitePagesDirectory . '/*.yml'), 'is_file');
+            $pageFiles = array_filter(glob("$sitePagesDirectory/*.yml"), 'is_file');
 
             foreach ($pageFiles as $file) {
                 $pageData = Yaml::parseFile($file);
@@ -158,17 +231,15 @@ class Core
         }
 
         return [
-            'log' => $siteLog,
             'theme' => $siteTheme,
             'pages' => $sitePages,
-            'colors' => $siteColors,
         ];
     }
 
     public static function createPage(array $pageData)
     {
-        $sitePagesDirectory = path(ViewsPath('__craftly', false))->join('pages');
-        $routeRegistry = path(ViewsPath('__craftly', false))->join('routes.yml');
+        $sitePagesDirectory = path(StoragePath('craftly', false))->join('pages');
+        $routeRegistry = path(StoragePath('craftly', false))->join('routes.yml');
         $pageFile = path($sitePagesDirectory)->join("{$pageData['name']}.yml");
 
         if (storage()->exists($pageFile)) {
@@ -215,18 +286,64 @@ class Core
             'src' => "{$pageData['name']}.yml"
         ];
 
-        storage()->createFile($pageFile, Yaml::dump($page));
         storage()->writeFile($routeRegistry, Yaml::dump($routes));
+        storage()->createFile($pageFile, Yaml::dump($page), [
+            'recursive' => true
+        ]);
+
+        return true;
+    }
+
+    public static function syncPages()
+    {
+        $payload = json_decode(file_get_contents('php://input'), true);
+        $data = $payload['data'] ?? [];
+
+        $sitePagesDirectory = path(StoragePath('craftly', false))->join('pages');
+        $routeRegistry = path(StoragePath('craftly', false))->join('routes.yml');
+
+        if (!empty($data)) {
+            storage()->delete($routeRegistry);
+            storage()->delete($sitePagesDirectory);
+
+            storage()->createFolder($sitePagesDirectory, [
+                'recursive' => true
+            ]);
+            storage()->createFile($routeRegistry, '', [
+                'recursive' => true
+            ]);
+        }
+
+        foreach ($data as $page) {
+            $pageFile = path($sitePagesDirectory)->join("{$page['name']}.yml");
+            $pageData = [
+                'page' => $page['name'],
+                'path' => $page['path'],
+                'status' => $page['status'],
+                'src' => "{$page['name']}.yml",
+            ];
+
+            if (isset($page['config']['use_route_localization']) && ($page['config']['use_route_localization'] === '0' || $page['config']['use_route_localization'] == false)) {
+                $pageData['langs'] = false;
+            } elseif (isset($page['config']['use_localized_routes']) && ($page['config']['use_localized_routes'] === '1' || $page['config']['use_localized_routes'] == true)) {
+                $pageData['langs'] = $page['lang_routes'];
+            }
+
+            $routes[] = $pageData;
+
+            storage()->createFile($pageFile, Yaml::dump($page, 2, 4, Yaml::DUMP_COMPACT_NESTED_MAPPING));
+            storage()->writeFile($routeRegistry, Yaml::dump($routes));
+        }
 
         return true;
     }
 
     public static function page(array $data)
     {
-        $pageFile = path(ViewsPath('__craftly', false))->join('pages', $data['route']['src']);
+        $pageFile = path(StoragePath('craftly', false))->join('pages', $data['route']['src']);
 
         if (!storage()->exists($pageFile)) {
-            throw new \ErrorException('Page file not found: ' . $pageFile);
+            throw new \ErrorException("Page file not found: $pageFile");
         }
 
         return Yaml::parseFile($pageFile);
@@ -234,10 +351,10 @@ class Core
 
     public static function getPageFromName(string $page)
     {
-        $pageFile = path(ViewsPath('__craftly', false))->join('pages', "$page.yml");
+        $pageFile = path(StoragePath('craftly', false))->join('pages', "$page.yml");
 
         if (!storage()->exists($pageFile)) {
-            throw new \ErrorException('Page file not found: ' . $pageFile);
+            throw new \ErrorException("Page file not found: $pageFile");
         }
 
         return Yaml::parseFile($pageFile);
@@ -245,10 +362,15 @@ class Core
 
     public static function render(array $data)
     {
-        $pageData = \array_merge($data['variables'], [
-            '__craftly' => $data
-        ]);
+        $dataFile = 'App\Content\\' . Str::pascal(($data['config']['data_source'] ?? 'default'));
 
-        return response()->render('__craftly.page', $pageData);
+        if (!class_exists($dataFile)) {
+            $dataFile = \App\Content\DefaultContent::class;
+        }
+
+        $pageData = (new $dataFile($data))->getData();
+        $pageToRender = 'layouts.' . strtolower($data['config']['template'] ?? 'default');
+
+        return response()->render($pageToRender, $pageData);
     }
 }

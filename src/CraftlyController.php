@@ -11,10 +11,10 @@ use Symfony\Component\Yaml\Yaml;
  */
 class CraftlyController
 {
-    public function index()
+    public function ping()
     {
         return response()->json([
-            'message' => 'Craftly API is working'
+            'message' => 'pong'
         ]);
     }
 
@@ -46,6 +46,11 @@ class CraftlyController
         ]);
     }
 
+    public function getTheme()
+    {
+        return response()->json(Core::getApp()['theme']);
+    }
+
     public function show(array $data)
     {
         $pageData = Core::page($data);
@@ -53,6 +58,13 @@ class CraftlyController
         $pageData['preview'] = !!request()->params('__preview', false);
 
         Core::render($pageData);
+    }
+
+    public function syncPages()
+    {
+        return response()->json(
+            Core::syncPages()
+        );
     }
 
     public function getPage(string $page)
@@ -68,6 +80,47 @@ class CraftlyController
 
         return response()->json([
             $modelFiles
+        ]);
+    }
+
+    public function getModelItems()
+    {
+        $model = implode('\\', array_map(function ($part) {
+            return ucfirst($part);
+        }, explode('/', urldecode(request()->get('model')))));
+
+        if (!class_exists($model)) {
+            return response()->json(['data' => []]);
+        }
+
+        return response()->json(
+            $model::orderBy('id', 'desc')->get()
+        );
+    }
+
+    public function getAppLogs()
+    {
+        $logFile = path(StoragePath('logs/app.log'))->normalize();
+
+        if (!file_exists($logFile)) {
+            return response()->json(['data' => []]);
+        }
+
+        return response()->json([
+            'data' => explode("\n\n", file_get_contents($logFile))
+        ]);
+    }
+
+    public function getRedirects()
+    {
+        $file = path(StoragePath('craftly/redirects.yml'))->normalize();
+
+        if (!file_exists($file)) {
+            return response()->json(['data' => []]);
+        }
+
+        return response()->json([
+            'data' => Yaml::parseFile($file)
         ]);
     }
 
@@ -142,6 +195,44 @@ class CraftlyController
         storage()->writeFile($langFile, Yaml::dump($data));
 
         return $this->getLang($lang);
+    }
+
+    public function deleteLang(string $lang)
+    {
+        $langFile = path(lingo()->config('locales.path'))->join("$lang.yml");
+
+        if (!storage()->exists($langFile)) {
+            return response()->json([
+                'error' => 'Language does not exist'
+            ], 404);
+        }
+
+        storage()->delete($langFile);
+
+        return response()->json([
+            'message' => 'deleted',
+        ]);
+    }
+
+    public function toggleLang(string $lang)
+    {
+        $langFile = path(lingo()->config('locales.path'))->join("$lang.yml");
+
+        if (!storage()->exists($langFile) && !storage()->exists("$langFile.disabled")) {
+            return response()->json([
+                'error' => 'Language does not exist'
+            ], 404);
+        }
+
+        if (storage()->exists($langFile)) {
+            storage()->rename($langFile, "$langFile.disabled");
+        } else {
+            storage()->rename("$langFile.disabled", $langFile);
+        }
+
+        return response()->json([
+            'message' => 'toggled',
+        ]);
     }
 
     public function getLang(string $lang)
@@ -251,9 +342,9 @@ class CraftlyController
 
         $stats = [
             'total' => count($media),
-            'images' => count(array_filter($media, fn ($item) => $item['type'] === 'image')),
-            'videos' => count(array_filter($media, fn ($item) => $item['type'] === 'video')),
-            'documents' => count(array_filter($media, fn ($item) => $item['type'] === 'document')),
+            'images' => count(array_filter($media, fn($item) => $item['type'] === 'image')),
+            'videos' => count(array_filter($media, fn($item) => $item['type'] === 'video')),
+            'documents' => count(array_filter($media, fn($item) => $item['type'] === 'document')),
             'storageUsed' => round(\Leaf\FS\Directory::size($basePath, 'mb'), 2) . ' MB',
             'storageLimit' => disk_total_space($basePath) / (1024 * 1024 * 1024) . ' GB',
         ];
@@ -262,6 +353,24 @@ class CraftlyController
             'data' => $media,
             'stats' => $stats,
         ]);
+    }
+
+    public function uploadMedia()
+    {
+        $uploaded = request()->upload(
+            'file',
+            ('public/' . request()->get('path')),
+            ['rename' => true]
+        );
+
+        if ($uploaded) {
+            return response()->json(['url' => str_replace('public/public', 'public', $uploaded['url'])]);
+        }
+
+        return response()->json([
+            'message' => 'File upload failed',
+            'errors' => request()->errors()
+        ], 400);
     }
 
     public function getAvailableModels()
