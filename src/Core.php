@@ -155,6 +155,21 @@ class Core
                     continue;
                 }
 
+                if ($route['type'] === 'redirect') {
+                    app()->match(
+                        implode('|', $route['options']['methods'] ?? []),
+                        $route['path'],
+                        [
+                            'lingo.no_locale_prefix' => true,
+                            function () use ($route) {
+                                return response()->redirect($route['options']['to'], 303);
+                            }
+                        ]
+                    );
+
+                    continue;
+                }
+
                 $handler = [
                     'namespace' => 'Craftly',
                     function (...$params) use ($route) {
@@ -320,7 +335,13 @@ class Core
                 'page' => $page['name'],
                 'path' => $page['path'],
                 'status' => $page['status'],
+                'type' => $page['type'],
                 'src' => "{$page['name']}.yml",
+                'options' => [
+                    'from' => $page['config']['from'] ?? null,
+                    'to' => $page['config']['to'] ?? null,
+                    'methods' => $page['config']['methods'] ?? []
+                ],
             ];
 
             if (isset($page['config']['use_route_localization']) && ($page['config']['use_route_localization'] === '0' || $page['config']['use_route_localization'] == false)) {
