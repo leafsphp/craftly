@@ -16,96 +16,112 @@ class Core
     {
         app()->get('/__craftly_api/app/ping', [
             'namespace' => 'Craftly',
+            'sitemap' => false,
             'lingo.no_locale_prefix' => true,
             'CraftlyController@ping'
         ]);
 
         app()->get('/__craftly_api/app/config', [
             'namespace' => 'Craftly',
+            'sitemap' => false,
             'lingo.no_locale_prefix' => true,
             'CraftlyController@getConfig'
         ]);
 
         app()->get('/__craftly_api/app/info', [
             'namespace' => 'Craftly',
+            'sitemap' => false,
             'lingo.no_locale_prefix' => true,
             'CraftlyController@getApp'
         ]);
 
         app()->get('/__craftly_api/app/redirects', [
             'namespace' => 'Craftly',
+            'sitemap' => false,
             'lingo.no_locale_prefix' => true,
             'CraftlyController@getRedirects'
         ]);
 
         app()->get('/__craftly_api/app/theme', [
             'namespace' => 'Craftly',
+            'sitemap' => false,
             'lingo.no_locale_prefix' => true,
             'CraftlyController@getTheme'
         ]);
 
         app()->get('/__craftly_api/app/logs', [
             'namespace' => 'Craftly',
+            'sitemap' => false,
             'lingo.no_locale_prefix' => true,
             'CraftlyController@getAppLogs'
         ]);
 
         app()->get('/__craftly_api/app/pages', [
             'namespace' => 'Craftly',
+            'sitemap' => false,
             'lingo.no_locale_prefix' => true,
             'CraftlyController@getPages'
         ]);
 
         app()->get('/__craftly_api/app/media', [
             'namespace' => 'Craftly',
+            'sitemap' => false,
             'lingo.no_locale_prefix' => true,
             'CraftlyController@getMedia'
         ]);
 
         app()->post('/__craftly_api/app/media', [
             'namespace' => 'Craftly',
+            'sitemap' => false,
             'lingo.no_locale_prefix' => true,
             'CraftlyController@uploadMedia'
         ]);
 
         app()->get('/__craftly_api/app/models', [
             'namespace' => 'Craftly',
+            'sitemap' => false,
             'lingo.no_locale_prefix' => true,
             'CraftlyController@getModels'
         ]);
 
         app()->get('/__craftly_api/app/models/show', [
             'namespace' => 'Craftly',
+            'sitemap' => false,
             'lingo.no_locale_prefix' => true,
             'CraftlyController@getModelItems'
         ]);
 
         app()->post('/__craftly_api/app/pages/sync', [
             'namespace' => 'Craftly',
+            'sitemap' => false,
             'lingo.no_locale_prefix' => true,
             'CraftlyController@syncPages'
         ]);
 
         app()->get('/__craftly_api/app/pages/{page}', [
             'namespace' => 'Craftly',
+            'sitemap' => false,
             'lingo.no_locale_prefix' => true,
             'CraftlyController@getPage'
         ]);
 
         app()->post('/__craftly_api/app/pages/{page}', [
             'namespace' => 'Craftly',
+            'sitemap' => false,
             'lingo.no_locale_prefix' => true,
             'CraftlyController@createPage'
         ]);
 
         app()->put('/__craftly_api/app/pages/{page}', [
             'namespace' => 'Craftly',
+            'sitemap' => false,
             'lingo.no_locale_prefix' => true,
             'CraftlyController@updatePage'
         ]);
 
         app()->get('/__craftly_api/app/langs', [
             'namespace' => 'Craftly',
+            'sitemap' => false,
             'lingo.no_locale_prefix' => true,
             'CraftlyController@getLangs'
         ]);
