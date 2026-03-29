@@ -128,30 +128,35 @@ class Core
 
         app()->get('/__craftly_api/app/langs/{lang}', [
             'namespace' => 'Craftly',
+            'sitemap' => false,
             'lingo.no_locale_prefix' => true,
             'CraftlyController@getLang'
         ]);
 
         app()->post('/__craftly_api/app/langs/{lang}', [
             'namespace' => 'Craftly',
+            'sitemap' => false,
             'lingo.no_locale_prefix' => true,
             'CraftlyController@createLang'
         ]);
 
         app()->delete('/__craftly_api/app/langs/{lang}', [
             'namespace' => 'Craftly',
+            'sitemap' => false,
             'lingo.no_locale_prefix' => true,
             'CraftlyController@deleteLang'
         ]);
 
         app()->put('/__craftly_api/app/langs/{lang}', [
             'namespace' => 'Craftly',
+            'sitemap' => false,
             'lingo.no_locale_prefix' => true,
             'CraftlyController@updateLang'
         ]);
 
         app()->post('/__craftly_api/app/langs/{lang}/toggle', [
             'namespace' => 'Craftly',
+            'sitemap' => false,
             'lingo.no_locale_prefix' => true,
             'CraftlyController@toggleLang'
         ]);
